@@ -1,0 +1,141 @@
+---
+title: "Case Study"
+author: "Austin Hsin"
+date: "2023-10-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Airbnb
+```{r}
+library(p8105.datasets)
+data(nyc_airbnb)
+
+str(nyc_airbnb)
+
+nyc_airbnb |>
+  count(room_type)
+
+nyc_airbnb |>
+  count(neighbourhood_group)
+```
+
+# Brainstorm questions
+
+- Where are AirBNBs expensive?
+  - Borough? Neighborhood?
+  - Do other factors (room type) affect price? What about rating?
+- How long are AirBNBs active?
+  - Are AirBNBs illegal and do they get shut down?
+- Which units have the most availability?
+- How is review score impacted by location?
+- How many apts are run by one host?
+  - Does that affect price?
+  - Does that vary by neighborhood? 
+- Where are AirBNBs? 
+  - Borough? Neighborhood?
+  - Lat and long?
+
+
+## Do some EDA
+
+```{r}
+nyc_airbnb |> 
+  count(borough)
+```
+
+```{r}
+nyc_airbnb |> 
+  group_by(borough, room_type) |> 
+  summarize(mean_price = mean(price)) |> 
+  pivot_wider(
+    names_from = room_type, 
+    values_from = mean_price
+  )
+```
+
+
+```{r}
+nyc_airbnb |> 
+  group_by(borough, room_type) |> 
+  summarize(median_price = median(price)) |> 
+  pivot_wider(
+    names_from = room_type, 
+    values_from = median_price
+  )
+```
+
+```{r}
+nyc_airbnb |> 
+  ggplot(aes(x = price)) + 
+  geom_histogram() + 
+  facet_grid(borough ~ room_type)
+```
+
+```{r}
+nyc_airbnb |> 
+  filter(price >= 9500)
+```
+
+```{r}
+nyc_airbnb |> 
+  filter(price < 1000, room_type == "Entire home/apt") |> 
+  ggplot(aes(x = price)) + 
+  geom_histogram() + 
+  facet_grid(. ~ borough)
+```
+
+
+```{r}
+nyc_airbnb |> 
+  filter(
+    price < 1000, 
+    room_type == "Entire home/apt", 
+    borough == "Manhattan") |> 
+  group_by(neighbourhood) |> 
+  summarize(
+    n_apt = n(),
+    mean_price = mean(price)) |> 
+  arrange((mean_price))
+```
+
+```{r}
+nyc_airbnb |> 
+  filter(
+    price < 1000, 
+    room_type == "Entire home/apt", 
+    borough == "Manhattan") |> 
+  mutate(neighbourhood = fct_reorder(neighbourhood, price)) |> 
+  ggplot(aes(x = price, y = neighbourhood)) + 
+  geom_density_ridges()
+```
+
+## Try to make a map
+
+```{r}
+nyc_airbnb |> 
+  filter(
+    price < 1000, 
+    room_type == "Entire home/apt", 
+    borough == "Manhattan") |> 
+  ggplot(aes(x = lat, y = long, color = price)) + 
+  geom_point()
+```
+
+
+Try something else entirely.
+
+```{r}
+nyc_airbnb |>  
+  filter(
+    price < 1000, 
+    room_type == "Entire home/apt", 
+    borough == "Manhattan") |> 
+  sample_n(500) |> 
+  leaflet() |> 
+  addProviderTiles(providers$CartoDB.Positron) |> 
+  addCircleMarkers(~lat, ~long, radius = .5)
+```
